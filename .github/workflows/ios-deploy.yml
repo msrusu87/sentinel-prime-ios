@@ -41,10 +41,25 @@ jobs:
 
       - name: Install certificate and provisioning profile
         env:
-          CERTIFICATE_P12: ${{ secrets.CERTIFICATE_P12 }}
+          SIGNING_CERT_DER: ${{ secrets.SIGNING_CERT_DER }}
+          SIGNING_KEY_PEM: ${{ secrets.SIGNING_KEY_PEM }}
           CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
           PROVISIONING_PROFILE: ${{ secrets.PROVISIONING_PROFILE }}
         run: |
+          # Decode cert (DER) and key (PEM)
+          echo -n "$SIGNING_CERT_DER" | base64 --decode > $RUNNER_TEMP/cert.der
+          echo -n "$SIGNING_KEY_PEM" | base64 --decode > $RUNNER_TEMP/key.pem
+
+          # Convert DER cert to PEM
+          openssl x509 -inform DER -in $RUNNER_TEMP/cert.der -out $RUNNER_TEMP/cert.pem
+
+          # Create P12 on macOS (uses legacy 3DES format that security import expects)
+          openssl pkcs12 -export \
+            -inkey $RUNNER_TEMP/key.pem \
+            -in $RUNNER_TEMP/cert.pem \
+            -out $RUNNER_TEMP/dist.p12 \
+            -passout "pass:$CERTIFICATE_PASSWORD"
+
           # Create temporary keychain
           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
           KEYCHAIN_PASSWORD=$(openssl rand -hex 16)
@@ -53,10 +68,8 @@ jobs:
           security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
 
-          # Import certificate
-          CERT_PATH=$RUNNER_TEMP/certificate.p12
-          echo -n "$CERTIFICATE_P12" | base64 --decode > "$CERT_PATH"
-          security import "$CERT_PATH" \
+          # Import P12
+          security import "$RUNNER_TEMP/dist.p12" \
             -P "$CERTIFICATE_PASSWORD" \
             -A \
             -t cert \
@@ -155,4 +168,5 @@ jobs:
         run: |
           security delete-keychain "$KEYCHAIN_PATH" 2>/dev/null || true
           rm -rf ~/private_keys $RUNNER_TEMP/*.xcarchive $RUNNER_TEMP/export
+          rm -f $RUNNER_TEMP/cert.der $RUNNER_TEMP/cert.pem $RUNNER_TEMP/key.pem $RUNNER_TEMP/dist.p12
           rm -f ~/Library/MobileDevice/Provisioning\ Profiles/${{ env.PP_UUID }}.mobileprovision
