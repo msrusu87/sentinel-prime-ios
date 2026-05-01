@@ -24,8 +24,8 @@ The macOS runner automatically manages certificates and provisioning profiles �
 
 | Secret | Description | How to find it |
 |--------|-------------|----------------|
-| `ASC_KEY_ID` | API Key ID | ✅ Already set: `32548MCWA6` |
-| `ASC_PRIVATE_KEY` | Contents of .p8 key | ✅ Already set |
+| `ASC_KEY_ID` | API Key ID | App Store Connect → Users & Access → Integrations |
+| `ASC_PRIVATE_KEY` | Contents of .p8 key | Paste full .p8 file contents |
 | `ASC_ISSUER_ID` | Issuer UUID | appstoreconnect.apple.com → Users & Access → Integrations → App Store Connect API (shown at top) |
 | `TEAM_ID` | 10-char Team ID | developer.apple.com/account → Membership details |
 
