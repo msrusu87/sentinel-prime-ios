@@ -43,34 +43,9 @@ jobs:
         run: |
           mkdir -p ~/private_keys
           echo "$ASC_PRIVATE_KEY" > ~/private_keys/AuthKey_${ASC_KEY_ID}.p8
+          chmod 600 ~/private_keys/AuthKey_${ASC_KEY_ID}.p8
 
-      - name: Install signing certificate
-        env:
-          CERTIFICATE_P12: ${{ secrets.CERTIFICATE_P12 }}
-          CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
-        run: |
-          KEYCHAIN_PATH=$RUNNER_TEMP/signing.keychain-db
-          CERT_PATH=$RUNNER_TEMP/certificate.p12
-
-          echo "$CERTIFICATE_P12" | base64 --decode > "$CERT_PATH"
-
-          security create-keychain -p "" "$KEYCHAIN_PATH"
-          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
-          security unlock-keychain -p "" "$KEYCHAIN_PATH"
-          security import "$CERT_PATH" -P "$CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
-          security set-key-partition-list -S apple-tool:,apple: -k "" "$KEYCHAIN_PATH"
-          security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain-db
-
-      - name: Install provisioning profile
-        env:
-          PROVISIONING_PROFILE: ${{ secrets.PROVISIONING_PROFILE }}
-        run: |
-          PP_PATH=$RUNNER_TEMP/profile.mobileprovision
-          echo "$PROVISIONING_PROFILE" | base64 --decode > "$PP_PATH"
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          cp "$PP_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/
-
-      - name: Build archive
+      - name: Build archive (automatic signing)
         run: |
           xcodebuild archive \
             -project "$XCODE_PROJECT" \
@@ -81,7 +56,7 @@ jobs:
             -authenticationKeyPath ~/private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8 \
             -authenticationKeyID ${{ secrets.ASC_KEY_ID }} \
             -authenticationKeyIssuerID ${{ secrets.ASC_ISSUER_ID }} \
-            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_STYLE=Automatic \
             DEVELOPMENT_TEAM=${{ secrets.TEAM_ID }} \
             PRODUCT_BUNDLE_IDENTIFIER=${{ env.BUNDLE_ID }}
 
@@ -96,6 +71,8 @@ jobs:
             <string>app-store</string>
             <key>teamID</key>
             <string>${{ secrets.TEAM_ID }}</string>
+            <key>signingStyle</key>
+            <string>automatic</string>
             <key>uploadSymbols</key>
             <true/>
             <key>uploadBitcode</key>
@@ -126,7 +103,6 @@ jobs:
             --apiKey "$ASC_KEY_ID" \
             --apiIssuer "$ASC_ISSUER_ID"
 
-      - name: Cleanup keychain
+      - name: Cleanup
         if: always()
-        run: |
-          security delete-keychain $RUNNER_TEMP/signing.keychain-db 2>/dev/null || true
+        run: rm -rf ~/private_keys $RUNNER_TEMP/*.xcarchive $RUNNER_TEMP/export

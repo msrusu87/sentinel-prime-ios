@@ -9,37 +9,32 @@ SwiftUI app for monitoring Sentinel Prime training, chatting with the model, and
 - **ModelCardView**: Static model info, fusion sources, dataset stats, external links
 - **SentinelAPI**: Async networking layer hitting Mission Control REST endpoints
 
-## API Endpoints Used
-
-| Endpoint | Purpose |
-|----------|--------|
-| `/api/overview` | Training metrics + shard stats |
-| `/api/system` | VRAM/RAM usage |
-| `/api/processes` | Live process list |
-| `/api/logs/{name}?n=N` | Tail N lines of a named log |
-| `/api/chat` | Chat with model (POST) |
-
 ## Build Requirements
 
 - Xcode 16+ / macOS 14+
 - iOS 17.0 deployment target
 - Swift 5.9+
 
-## GitHub Actions CI/CD
+## CI/CD — Automatic Code Signing
 
-The workflow at `.github/workflows/ios-deploy.yml` builds on `macos-14` runners.
+The workflow uses **Xcode Automatic Code Signing** with the App Store Connect API key.
+The macOS runner automatically manages certificates and provisioning profiles — **no manual certificate export required.**
 
-### Required GitHub Secrets
+### Required GitHub Secrets (only 4)
 
-| Secret | Description |
-|--------|-------------|
-| `ASC_KEY_ID` | App Store Connect API Key ID |
-| `ASC_ISSUER_ID` | App Store Connect Issuer ID |
-| `ASC_PRIVATE_KEY` | Contents of the `.p8` private key file |
-| `TEAM_ID` | Apple Developer Team ID |
-| `CERTIFICATE_P12` | Base64-encoded distribution certificate (.p12) |
-| `CERTIFICATE_PASSWORD` | Password for the .p12 certificate |
-| `PROVISIONING_PROFILE` | Base64-encoded provisioning profile (.mobileprovision) |
+| Secret | Description | How to find it |
+|--------|-------------|----------------|
+| `ASC_KEY_ID` | API Key ID | ✅ Already set: `32548MCWA6` |
+| `ASC_PRIVATE_KEY` | Contents of .p8 key | ✅ Already set |
+| `ASC_ISSUER_ID` | Issuer UUID | appstoreconnect.apple.com → Users & Access → Integrations → App Store Connect API (shown at top) |
+| `TEAM_ID` | 10-char Team ID | developer.apple.com/account → Membership details |
+
+### Quick Setup (after getting the 2 IDs)
+
+```bash
+# One-command setup:
+python scripts/deploy/set_ios_secrets.py --issuer YOUR_ISSUER_UUID --team YOUR_TEAM_ID
+```
 
 ### Deploying
 
@@ -47,3 +42,5 @@ The workflow at `.github/workflows/ios-deploy.yml` builds on `macos-14` runners.
 git tag v1.0.0
 git push origin v1.0.0
 ```
+
+Or trigger manually from GitHub Actions tab → "Run workflow".
