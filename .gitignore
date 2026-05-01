@@ -1,0 +1,27 @@
+## Build artifacts
+build/
+DerivedData/
+*.xcarchive
+*.ipa
+
+## Xcode
+*.xcuserstate
+*.xcuserdatad/
+*.xcscmblueprint
+xcuserdata/
+
+## macOS
+.DS_Store
+*.swp
+
+## Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/
+fastlane/test_output/
+
+## Keys (never commit)
+*.p8
+*.p12
+*.mobileprovision
+*.cer
